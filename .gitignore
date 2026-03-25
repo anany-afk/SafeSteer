@@ -1,0 +1,16 @@
+# datasets
+Driver Drowsiness Dataset (DDD)/
+yawDD/
+CEW/
+
+# model outputs
+training_output/
+
+# python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+
+# vscode
+.vscode/
