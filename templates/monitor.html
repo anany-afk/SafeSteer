@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrowsyGuard AI | Live Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <!-- Load Poppins font as requested -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chart.js for the Fatigue Graph -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <!-- 1. TOP NAVBAR -->
+    <header class="top-navbar">
+        <div class="nav-left">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="SafeSteer" style="height: 40px; margin-top: 5px;">
+            </div>
+        </div>
+        <div class="nav-center">
+            <a href="/" class="nav-link">Home</a>
+            <a href="/monitor" class="nav-link active">Live Monitor</a>
+            <a href="#" class="nav-link">Reports</a>
+            <a href="#" class="nav-link">Settings</a>
+            <a href="#" class="nav-link">About</a>
+        </div>
+        <div class="nav-right">
+            <button class="icon-btn bell-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            </button>
+            <div class="user-avatar"></div>
+        </div>
+    </header>
+
+    <div class="app-layout">
+        <!-- 2. LEFT SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <nav class="sidebar-nav">
+                <a href="#" class="side-item active">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
+                    <span>Dashboard</span>
+                </a>
+                <a href="/monitor" class="side-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polygon points="10 8 16 12 10 16 10 8"></polygon></svg>
+                    <span>Live Detection</span>
+                </a>
+
+                <a href="#" class="side-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <span>Settings</span>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- 3. MAIN DASHBOARD AREA -->
+        <main class="dashboard-area">
+            
+            <!-- A. HERO STATUS PANEL -->
+            <div class="panel hero-status">
+                <div class="status-indicator">
+                    <h2>Driver Status: <span id="masterStatus" class="status-awake">INITIALIZING</span></h2>
+                    <p class="subtext" id="monitorSubtext">Starting camera & calibrating...</p>
+                </div>
+                <div class="monitor-controls">
+                    <button id="btnStartStop" class="btn-monitor btn-start" onclick="toggleMonitoring()">Start Monitoring</button>
+                </div>
+            </div>
+
+            <!-- Dashboard Grid -->
+            <div class="bento-grid">
+                
+                <!-- B. LIVE CAMERA FEED PANEL -->
+                <div class="panel camera-panel bento-large">
+                    <div class="panel-header">
+                        <h3>Camera Feed</h3>
+                        <div class="live-badge"><span class="pulse-dot"></span> LIVE</div>
+                    </div>
+                    <div class="video-container">
+                        <img id="videoFeed" src="" alt="Camera Frame" style="display:none;">
+                        <div id="videoPlaceholder" class="video-placeholder">
+                            <div class="placeholder-icon">📷</div>
+                            <p>Click <strong>Start Monitoring</strong> to begin</p>
+                        </div>
+                        <div class="video-overlay-text" id="overlayText" style="display:none;">Tracking eyes and blink rate...</div>
+                    </div>
+                </div>
+
+                <!-- RIGHT COLUMN -->
+                <div class="right-col-grid">
+                    
+                    <!-- C. ALERT PANEL -->
+                    <div class="panel alert-panel" id="alertPlate">
+                        <div class="alert-content">
+                            <span class="alert-icon">⚠️</span>
+                            <span id="alertText">System Normal</span>
+                        </div>
+                        <div class="toggle-container">
+                            <label class="toggle-lbl">Sound Alert</label>
+                            <label class="switch">
+                                <input type="checkbox" id="soundToggle" checked>
+                                <span class="slider round"></span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- D. ANALYTICS / STATS PANEL -->
+                    <div class="panel stats-panel">
+                        <div class="stat-grid">
+                            <div class="stat-box">
+                                <span class="lbl">Blink Rate (/min)</span>
+                                <span class="val" id="stat-blinkRate">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="lbl">Eye Closure Dur (s)</span>
+                                <span class="val" id="stat-eyeClose">0.0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="lbl">Drowsiness Score</span>
+                                <span class="val" id="stat-drowsyScore">0</span>
+                            </div>
+                            <div class="stat-box">
+                                <span class="lbl">Total Yawns</span>
+                                <span class="val" id="stat-yawns">0</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- E. GRAPH SECTION -->
+                    <div class="panel graph-panel">
+                        <div class="panel-header">
+                            <h3>Fatigue Trend</h3>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="fatigueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- F. SYSTEM STATUS PANEL -->
+                    <div class="panel sys-status">
+                        <div class="sys-item">
+                            <span class="lbl">Camera:</span>
+                            <span class="val green">Active</span>
+                        </div>
+                        <div class="sys-item">
+                            <span class="lbl">Model:</span>
+                            <span class="val green">Running</span>
+                        </div>
+                        <div class="sys-item">
+                            <span class="lbl">Lighting:</span>
+                            <span class="val" id="stat-lighting">Normal</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 4. FOOTER -->
+            <footer class="app-footer">
+                <p>&copy; 2026 DrowsyGuard AI | Built with Computer Vision</p>
+            </footer>
+        </main>
+    </div>
+
+    <!-- Alert Modal overlay that flashes when drowsy -->
+    <div id="dangerOverlay" class="danger-overlay"></div>
+
+    <script>
+        let monitoringActive = false;
+
+        async function toggleMonitoring() {
+            const btn = document.getElementById('btnStartStop');
+            const videoFeed = document.getElementById('videoFeed');
+            const placeholder = document.getElementById('videoPlaceholder');
+            const overlayText = document.getElementById('overlayText');
+            const subtext = document.getElementById('monitorSubtext');
+            const masterStatus = document.getElementById('masterStatus');
+
+            if (!monitoringActive) {
+                btn.disabled = true;
+                btn.textContent = 'Starting...';
+                btn.className = 'btn-monitor btn-starting';
+                masterStatus.textContent = 'CALIBRATING';
+                masterStatus.className = 'status-calibrating';
+                subtext.textContent = 'Starting camera & calibrating (look at the camera)...';
+
+                try {
+                    const resp = await fetch('/start_monitoring', { method: 'POST' });
+                    const data = await resp.json();
+                    if (data.status === 'success') {
+                        monitoringActive = true;
+                        // Connect the video feed
+                        videoFeed.src = '/video_feed';
+                        videoFeed.style.display = 'block';
+                        if (placeholder) placeholder.style.display = 'none';
+                        if (overlayText) overlayText.style.display = 'block';
+                        btn.textContent = 'Stop Monitoring';
+                        btn.className = 'btn-monitor btn-stop';
+                        btn.disabled = false;
+                        masterStatus.textContent = 'AWAKE';
+                        masterStatus.className = 'status-awake';
+                        subtext.textContent = 'Monitoring in real-time';
+                    }
+                } catch (e) {
+                    console.error('Failed to start monitoring:', e);
+                    btn.textContent = 'Start Monitoring';
+                    btn.className = 'btn-monitor btn-start';
+                    btn.disabled = false;
+                    masterStatus.textContent = 'ERROR';
+                    subtext.textContent = 'Failed to start — check console';
+                }
+            } else {
+                btn.disabled = true;
+                btn.textContent = 'Stopping...';
+                try {
+                    await fetch('/stop_monitoring', { method: 'POST' });
+                } catch (e) {
+                    console.error('Failed to stop:', e);
+                }
+                monitoringActive = false;
+                videoFeed.src = '';
+                videoFeed.style.display = 'none';
+                if (placeholder) placeholder.style.display = 'flex';
+                if (overlayText) overlayText.style.display = 'none';
+                btn.textContent = 'Start Monitoring';
+                btn.className = 'btn-monitor btn-start';
+                btn.disabled = false;
+                masterStatus.textContent = 'OFFLINE';
+                masterStatus.className = '';
+                subtext.textContent = 'Monitoring stopped';
+            }
+        }
+    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
