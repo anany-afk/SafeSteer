@@ -11,8 +11,8 @@ data/raw/
 data/processed/
 
 # model outputs
-models/
-!models/.gitkeep
+/models/
+!/models/.gitkeep
 
 # logs
 *.log
