@@ -1,1 +1,81 @@
-<!DOCTYPE html> <html lang="en"> <head> <meta charset="UTF-8"> <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>DrowsyGuard AI | Driving Safety</title> <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}"> <!-- Load Poppins font as requested --> <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet"> </head> <body class="landing-body"> <div class="background-effects"> <div class="glow glow-1"></div> <div class="glow glow-2"></div> </div> <div class="container hero"> <nav class="navbar"> <div class="logo"> <img src="{{ url_for('static', filename='logo.png') }}" alt="SafeSteer" style="height: 50px;"> </div> </nav> <main class="hero-content"> <div class="hero-text"> <h1>Driver Drowsiness <br><span class="accent">Detection System</span></h1> <p>Advanced real-time driver drowsiness detection utilizing MediaPipe FaceMesh and Hybrid CNN/BiLSTM architectures.</p> <div class="features"> <div class="feature-tag">Tracking EAR & MAR</div> <div class="feature-tag">Perclos Analysis</div> <div class="feature-tag">99.6% Accuracy</div> </div> <button id="startBtn" class="primary-btn pulse-glow"> <span>Start Monitoring</span> <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg> </button> </div> <div class="hero-visual"> <div class="glass-card visual-card"> <div class="visual-header"> <div class="dots"><span></span><span></span><span></span></div> <div class="title">System Status</div> </div> <div class="visual-body"> <div class="mock-stat"> <span class="stat-lbl">Model Architecture</span> <span class="stat-val highlight">CNN + BiLSTM</span> </div> <div class="mock-stat"> <span class="stat-lbl">Latency</span> <span class="stat-val accent">~30ms</span> </div> <div class="mock-stat"> <span class="stat-lbl">Status</span> <span class="stat-val green">READY</span> </div> </div> </div> </div> </main> </div> <script> document.getElementById('startBtn').addEventListener('click', async () => { const btn = document.getElementById('startBtn'); btn.classList.add('loading'); btn.innerHTML = '<span>Initializing...</span><div class="spinner"></div>'; try { const response = await fetch('/start_monitoring', { method: 'POST' }); if (response.ok) { window.location.href = '/monitor'; } else { alert("Failed to start monitoring system."); btn.innerHTML = '<span>Start Monitoring</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'; } } catch (error) { console.error("Error starting camera:", error); alert("Server error. Ensure the backend is running."); btn.innerHTML = '<span>Start Monitoring</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>'; } btn.classList.remove('loading'); }); </script> </body> </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeSteer | Live Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body class="landing-body">
+    <div class="background-effects">
+        <div class="glow glow-1"></div>
+        <div class="glow glow-2"></div>
+    </div>
+    <div class="container hero">
+        <nav class="navbar">
+            <div class="logo">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="SafeSteer" style="height: 50px;">
+            </div>
+        </nav>
+        <main class="hero-content">
+            <div class="hero-text">
+                <h1>Driver Drowsiness <br><span class="accent">Detection System</span></h1>
+                <p>Advanced real-time driver drowsiness detection utilizing MediaPipe FaceMesh and Hybrid CNN/BiLSTM architectures.</p>
+                <div class="features">
+                    <div class="feature-tag">Tracking EAR & MAR</div>
+                    <div class="feature-tag">Perclos Analysis</div>
+                    <div class="feature-tag">99.6% Accuracy</div>
+                </div>
+                <button id="startBtn" class="primary-btn pulse-glow">
+                    <span>Start Monitoring</span>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+            </div>
+            <div class="hero-visual">
+                <div class="glass-card visual-card">
+                    <div class="visual-header">
+                        <div class="dots"><span></span><span></span><span></span></div>
+                        <div class="title">System Status</div>
+                    </div>
+                    <div class="visual-body">
+                        <div class="mock-stat">
+                            <span class="stat-lbl">Model Architecture</span>
+                            <span class="stat-val highlight">CNN + BiLSTM</span>
+                        </div>
+                        <div class="mock-stat">
+                            <span class="stat-lbl">Latency</span>
+                            <span class="stat-val accent">~30ms</span>
+                        </div>
+                        <div class="mock-stat">
+                            <span class="stat-lbl">Status</span>
+                            <span class="stat-val green">READY</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+    <script>
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('startBtn');
+            btn.classList.add('loading');
+            btn.innerHTML = '<span>Initializing...</span><div class="spinner"></div>';
+            try {
+                const response = await fetch('/start_monitoring', { method: 'POST' });
+                if (response.ok) {
+                    window.location.href = '/monitor';
+                } else {
+                    alert("Failed to start monitoring system.");
+                    btn.innerHTML = '<span>Start Monitoring</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+                }
+            } catch (error) {
+                console.error("Error starting camera:", error);
+                alert("Server error. Ensure the backend is running.");
+                btn.innerHTML = '<span>Start Monitoring</span><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+            }
+            btn.classList.remove('loading');
+        });
+    </script>
+</body>
+</html>
