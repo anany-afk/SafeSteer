@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DrowsyGuard AI | Live Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="dashboard-body">
+    <div id="dangerOverlay" class="danger-overlay"></div>
+    
+    <div class="dashboard-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <img src="{{ url_for('static', filename='logo.png') }}" alt="Logo" class="mini-logo">
+            </div>
+            <nav class="side-nav">
+                <a href="/" class="nav-item">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                </a>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-bar">
+                <div class="search-wrap">
+                    <h2>Live Monitoring <span id="masterStatus" class="status-awake">AWAKE</span></h2>
+                </div>
+                <div class="controls">
+                    <button id="exitBtn" class="secondary-btn danger-btn">
+                        <span>Exit Detection</span>
+                    </button>
+                    <label class="switch">
+                        <input type="checkbox" checked id="soundToggle">
+                        <span class="slider round"></span>
+                    </label>
+                    <span class="label-text">Audio Alerts</span>
+                </div>
+            </header>
+
+            <div class="grid-layout">
+                <!-- Video Section -->
+                <section class="video-section">
+                    <div class="glass-card video-card">
+                        <div class="card-header">
+                            <span class="pulse-red"></span>
+                            LIVE FEED - AI VISION
+                        </div>
+                        <div class="video-container">
+                            <img src="{{ url_for('video_feed') }}" alt="Feed" id="videoFeed">
+                        </div>
+                        <div id="alertPlate" class="alert-plate">
+                            <span id="alertText">System Normal</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Stats Side -->
+                <section class="stats-section">
+                    <div class="stats-grid">
+                        <div class="glass-card stat-card">
+                            <span class="stat-label">Blink Rate</span>
+                            <span class="stat-value" id="stat-blinkRate">0</span>
+                            <span class="stat-unit">BPM</span>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <span class="stat-label">Eye Close</span>
+                            <span class="stat-value" id="stat-eyeClose">0.0</span>
+                            <span class="stat-unit">SEC</span>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <span class="stat-label">Drowsy Score</span>
+                            <span class="stat-value" id="stat-drowsyScore">0</span>
+                            <span class="stat-unit">%</span>
+                        </div>
+                        <div class="glass-card stat-card">
+                            <span class="stat-label">Yawns</span>
+                            <span class="stat-value" id="stat-yawns">0</span>
+                            <span class="stat-unit">COUNT</span>
+                        </div>
+                    </div>
+
+                    <!-- Graph Chart -->
+                    <div class="glass-card graph-card">
+                        <div class="card-header">FATIGUE INDEX (REAL-TIME)</div>
+                        <div class="chart-container">
+                            <canvas id="fatigueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- System Info -->
+                    <div class="glass-card info-card">
+                        <div class="info-row">
+                            <span>Environmental Lighting</span>
+                            <span id="stat-lighting" class="val">Detecting...</span>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

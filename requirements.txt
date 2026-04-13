@@ -1,0 +1,11 @@
+opencv-python
+numpy
+matplotlib
+mediapipe
+torch
+torchvision
+scikit-learn
+tqdm
+joblib
+flask
+# winsound (standard library on Windows)
