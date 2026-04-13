@@ -20,11 +20,16 @@ detector_thread = None
 def run_detector():
     global detector
     try:
-        model_path = os.path.join(CFG["output_dir"], "drowsiness_model_full.pth")
-        scaler_path = os.path.join(CFG["output_dir"], "scaler.pkl")
+        # Use absolute paths to avoid relative path confusion
+        base_dir = os.path.abspath(os.path.dirname(__file__))
+        model_path = os.path.join(base_dir, CFG["output_dir"], "drowsiness_model_full.pth")
+        scaler_path = os.path.join(base_dir, CFG["output_dir"], "scaler.pkl")
+        
+        log.info(f"Checking for model at: {model_path}")
+        log.info(f"Checking for scaler at: {scaler_path}")
         
         if not os.path.exists(model_path) or not os.path.exists(scaler_path):
-            log.error(f"Model or Scaler not found in {CFG['output_dir']}. Please train the model first.")
+            log.error(f"Model or Scaler not found. Searched in: {os.path.join(base_dir, CFG['output_dir'])}. Please train the model first.")
             return
 
         detector = RealTimeDetector(model_path, scaler_path, CFG)
