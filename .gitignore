@@ -1,15 +1,24 @@
-# datasets
-Driver Drowsiness Dataset (DDD)/
-CEW/
-
-# model outputs
-training_output/
-
 # python
 __pycache__/
 *.pyc
 .venv/
+vh/
+venv/
 *.egg-info/
 
-# vscode
+# datasets
+data/raw/
+data/processed/
+
+# model outputs
+models/
+!models/.gitkeep
+
+# logs
+*.log
+
+# vscode/env
 .vscode/
+.env
+.ipynb_checkpoints
+.DS_Store
