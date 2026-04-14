@@ -24,15 +24,15 @@ log = logging.getLogger(__name__)
 class RealTimeDetector:
     # --- Tuning constants ---
     ALERT_PROB_THRESHOLD = 0.93      # Higher certainty required
-    ALERT_CONSECUTIVE    = 65      # Longer duration required (was 45) to ignore long blinks
-    PERCLOS_ALERT        = 0.60      
+    ALERT_CONSECUTIVE    = 35      # Faster trigger (was 65)
+    PERCLOS_ALERT        = 0.45      # Combined with shorter window for higher sensitivity
     SMOOTH_WINDOW        = 20      
     EAR_SMOOTH           = 12      
     ADAPT_RATE           = 0.001     
     
     # Head-Pose Thresholds
-    PITCH_THRESHOLD         = -25.0   
-    PITCH_CONSECUTIVE_LIMIT = 100     
+    PITCH_THRESHOLD         = -20.0   # Balanced (was -16.0, originally -25.0)
+    PITCH_CONSECUTIVE_LIMIT = 60      # Balanced (was 45, originally 100)
     YAW_LOOK_AWAY_THRESHOLD = 22.0    
     
     # Yawn logic
@@ -40,11 +40,11 @@ class RealTimeDetector:
     YAWN_MIN_FRAMES      = 15
 
     # Recovery Dynamics
-    RECOVERY_MULTIPLIER  = 12      
+    RECOVERY_MULTIPLIER  = 20      # Faster reset (was 12)
     FACE_LOST_RESET_TIME = 150     
     
     # Counter Caps (To prevent recovery lag)
-    PITCH_MAX_CTR = 150            
+    PITCH_MAX_CTR = 80             # Lower cap to prevent "winding up" state
     ALERT_MAX_CTR = 100
 
     # Window Name
@@ -73,7 +73,7 @@ class RealTimeDetector:
         self.frame_buffer   = deque(maxlen=cfg["sequence_len"])
         self.prob_buffer    = deque(maxlen=self.SMOOTH_WINDOW)
         self.ear_buffer     = deque(maxlen=self.EAR_SMOOTH)
-        self.perclos_window = deque(maxlen=150)
+        self.perclos_window = deque(maxlen=60) # Shorter window (was 150)
 
         # State Variables
         self.pitch_consec_ctr = 0
@@ -111,8 +111,8 @@ class RealTimeDetector:
             log.info("Alert loop started")
             while self.alert_active and not self.web_mode:
                 if BEEP_AVAILABLE:
-                    winsound.Beep(1000, 500)
-                    time.sleep(0.1)
+                    winsound.Beep(1000, 200) # Shorter beep (was 500ms)
+                    time.sleep(0.05)
                 else:
                     sys.stdout.write('\a')
                     sys.stdout.flush()
