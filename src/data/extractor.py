@@ -38,33 +38,29 @@ class FacialFeatureExtractor:
         # Smaller tile grid for CLAHE to speed up
         self.clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4, 4))
 
-    def _euclidean(self, p1, p2):
-        return math.sqrt((p1[0]-p2[0])**2 + (p1[1]-p2[1])**2)
-
-    def _eye_aspect_ratio(self, lm, indices, w, h):
-        pts = [(lm[i].x * w, lm[i].y * h) for i in indices]
-        v1 = self._euclidean(pts[1], pts[5])
-        v2 = self._euclidean(pts[2], pts[4])
-        hz = self._euclidean(pts[0], pts[3])
+    def _eye_aspect_ratio(self, lm_np, indices):
+        """Vectorized EAR calculation (2D)."""
+        pts = lm_np[indices, :2]
+        v1 = np.linalg.norm(pts[1] - pts[5])
+        v2 = np.linalg.norm(pts[2] - pts[4])
+        hz = np.linalg.norm(pts[0] - pts[3])
         return (v1 + v2) / (2.0 * hz + 1e-6)
 
-    def _mouth_aspect_ratio(self, lm, w, h):
-        pts = [(lm[i].x * w, lm[i].y * h) for i in MOUTH]
-        v1 = self._euclidean(pts[2], pts[6])
-        v2 = self._euclidean(pts[3], pts[5])
-        hz = self._euclidean(pts[0], pts[1])
+    def _mouth_aspect_ratio(self, lm_np):
+        """Vectorized MAR calculation (2D)."""
+        pts = lm_np[MOUTH, :2]
+        v1 = np.linalg.norm(pts[2] - pts[6])
+        v2 = np.linalg.norm(pts[3] - pts[5])
+        hz = np.linalg.norm(pts[0] - pts[1])
         return (v1 + v2) / (2.0 * hz + 1e-6)
 
     def _polygon_area(self, pts):
-        n = len(pts)
-        area = 0.0
-        for i in range(n):
-            j = (i + 1) % n
-            area += pts[i][0] * pts[j][1]
-            area -= pts[j][0] * pts[i][1]
-        return abs(area) / 2.0
+        """Vectorized shoelace formula."""
+        x = pts[:, 0]
+        y = pts[:, 1]
+        return 0.5 * np.abs(np.dot(x, np.roll(y, 1)) - np.dot(y, np.roll(x, 1)))
 
-    def _head_pose(self, lm, w, h):
+    def _head_pose(self, lm_np, w, h):
         model_pts = np.array([
             [0.0, 0.0, 0.0],
             [0.0, -330.0, -65.0],
@@ -74,17 +70,16 @@ class FacialFeatureExtractor:
             [150.0, -150.0, -125.0],
         ], dtype=np.float64)
 
-        img_pts = np.array([
-            (lm[HEAD_POSE_POINTS[i]].x * w,
-             lm[HEAD_POSE_POINTS[i]].y * h)
-            for i in range(6)
-        ], dtype=np.float64)
+        img_pts = lm_np[HEAD_POSE_POINTS, :2].astype(np.float64)
+        # Rescale normalized landmarks to pixel coordinates
+        img_pts[:, 0] *= w
+        img_pts[:, 1] *= h
 
         focal = w
         cam_mat = np.array([[focal, 0, w/2],
                             [0, focal, h/2],
                             [0, 0, 1]], dtype=np.float64)
-        dist = np.zeros((4, 1))
+        dist = np.zeros((4, 1), dtype=np.float64)
 
         success, rvec, tvec = cv2.solvePnP(
             model_pts, img_pts, cam_mat, dist,
@@ -96,11 +91,7 @@ class FacialFeatureExtractor:
         rmat, _ = cv2.Rodrigues(rvec)
         proj = np.hstack((rmat, tvec))
         _, _, _, _, _, _, euler = cv2.decomposeProjectionMatrix(proj)
-        # pitch (X), yaw (Y), roll (Z)
-        pitch = float(euler[0, 0])
-        yaw   = float(euler[1, 0])
-        roll  = float(euler[2, 0])
-        return pitch, yaw, roll
+        return float(euler[0, 0]), float(euler[1, 0]), float(euler[2, 0])
 
     def _preprocess(self, frame_bgr):
         """
@@ -119,6 +110,7 @@ class FacialFeatureExtractor:
             
         # Fallback for dark environments
         lab = cv2.cvtColor(blurred, cv2.COLOR_BGR2LAB)
+        # Using Lab color space for better illumination enhancement
         l, a, b = cv2.split(lab)
         l_clahe = self.clahe.apply(l)
         
@@ -135,8 +127,18 @@ class FacialFeatureExtractor:
         """
         Extract features. In IMAGE mode, timestamp_ms is ignored.
         """
-        h, w = frame_bgr.shape[:2]
-        processed = self._preprocess(frame_bgr)
+        raw_h, raw_w = frame_bgr.shape[:2]
+        
+        # Performance optimization: Resize frame for detection if too large
+        process_w = 480
+        if raw_w > process_w:
+            scale = process_w / raw_w
+            frame_detect = cv2.resize(frame_bgr, (process_w, int(raw_h * scale)))
+        else:
+            frame_detect = frame_bgr
+            
+        h, w = frame_detect.shape[:2]
+        processed = self._preprocess(frame_detect)
         rgb = cv2.cvtColor(processed, cv2.COLOR_BGR2RGB)
         
         mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
@@ -171,62 +173,65 @@ class FacialFeatureExtractor:
             return np.zeros(20, dtype=np.float32), False
 
         lm = results.face_landmarks[0]
+        # Convert landmarks to NumPy for vectorized math
+        lm_np = np.array([[l.x, l.y, l.z] for l in lm], dtype=np.float32)
 
-        # Geometric calculations
-        ear_r = self._eye_aspect_ratio(lm, RIGHT_EYE, w, h)
-        ear_l = self._eye_aspect_ratio(lm, LEFT_EYE,  w, h)
+        # Geometric calculations (Vectorized 2D for robustness)
+        ear_r = self._eye_aspect_ratio(lm_np, RIGHT_EYE)
+        ear_l = self._eye_aspect_ratio(lm_np, LEFT_EYE)
         ear_m = (ear_r + ear_l) / 2.0
         ear_d = abs(ear_r - ear_l)
-        mar = self._mouth_aspect_ratio(lm, w, h)
+        mar = self._mouth_aspect_ratio(lm_np)
         
         eye_flag  = 1.0 if ear_m < CFG["ear_threshold"] else 0.0
         yawn_flag = 1.0 if mar  > CFG["mar_threshold"]  else 0.0
         
-        mouth_top    = lm[13].y * h
-        mouth_bottom = lm[14].y * h
-        face_height  = abs(lm[10].y - lm[152].y) * h + 1e-6
+        mouth_top    = lm[13].y
+        mouth_bottom = lm[14].y
+        face_height  = abs(lm[10].y - lm[152].y) + 1e-6
         mouth_open   = abs(mouth_bottom - mouth_top) / face_height
         
-        brow_l = (lm[107].x * w, lm[107].y * h)
-        brow_r = (lm[336].x * w, lm[336].y * h)
-        brow_furrow = self._euclidean(brow_l, brow_r) / (w + 1e-6)
+        brow_l = lm_np[107, :2]
+        brow_r = lm_np[336, :2]
+        brow_furrow = np.linalg.norm(brow_l - brow_r)
         
-        pitch, yaw, roll = self._head_pose(lm, w, h)
+        # Throttled head pose calculation
+        if not hasattr(self, '_prev_pose') or (timestamp_ms % CFG.get('solve_pnp_interval', 1) == 0):
+            self._prev_pose = self._head_pose(lm_np, w, h)
+        pitch, yaw, roll = self._prev_pose
         
-        nose  = (lm[NOSE_TIP].x * w, lm[NOSE_TIP].y * h)
-        chin  = (lm[CHIN].x * w,     lm[CHIN].y * h)
-        n2c   = self._euclidean(nose, chin) / (h + 1e-6)
+        nose  = lm_np[NOSE_TIP, :2]
+        chin  = lm_np[CHIN, :2]
+        n2c   = np.linalg.norm(nose - chin)
         
-        r_pts = [(lm[i].x*w, lm[i].y*h) for i in RIGHT_EYE]
-        l_pts = [(lm[i].x*w, lm[i].y*h) for i in LEFT_EYE]
-        m_pts = [(lm[i].x*w, lm[i].y*h) for i in MOUTH_OUTER]
-        eye_r_area = self._polygon_area(r_pts) / (w*h + 1e-6)
-        eye_l_area = self._polygon_area(l_pts) / (w*h + 1e-6)
-        mouth_area = self._polygon_area(m_pts) / (w*h + 1e-6)
+        r_pts = lm_np[RIGHT_EYE, :2]
+        l_pts = lm_np[LEFT_EYE, :2]
+        m_pts = lm_np[MOUTH_OUTER, :2]
+        eye_r_area = self._polygon_area(r_pts)
+        eye_l_area = self._polygon_area(l_pts)
+        mouth_area = self._polygon_area(m_pts)
         
         try:
-            p_l = (lm[468].x * w, lm[468].y * h)
-            p_r = (lm[473].x * w, lm[473].y * h)
-            pupil_dist = self._euclidean(p_l, p_r) / (w + 1e-6)
+            p_l = lm_np[468, :2]
+            p_r = lm_np[473, :2]
+            pupil_dist = np.linalg.norm(p_l - p_r)
         except Exception:
             pupil_dist = 0.0
             
-        l_upper  = lm[386].y * h
-        l_corner = lm[362].y * h
-        r_upper  = lm[159].y * h
-        r_corner = lm[33].y  * h
-        l_droop  = max(0.0, l_upper - l_corner) / (h + 1e-6)
-        r_droop  = max(0.0, r_upper - r_corner) / (h + 1e-6)
+        l_upper  = lm_np[386, 1]
+        l_corner = lm_np[362, 1]
+        r_upper  = lm_np[159, 1]
+        r_corner = lm_np[33, 1]
+        l_droop  = max(0.0, l_upper - l_corner)
+        r_droop  = max(0.0, r_upper - r_corner)
         
-        conf = 1.0
-
         features = np.array([
             ear_r, ear_l, ear_m, ear_d,
             mar, eye_flag, yawn_flag, mouth_open,
             brow_furrow, pitch/90.0, yaw/90.0, roll/90.0,
             n2c, eye_l_area*1000, eye_r_area*1000,
             mouth_area*1000, pupil_dist,
-            l_droop*100, r_droop*100, conf
+            l_droop*100, r_droop*100, 1.0
         ], dtype=np.float32)
 
         return features, True
